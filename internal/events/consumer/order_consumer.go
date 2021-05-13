@@ -1,7 +1,7 @@
 package consumer
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	common "github.com/muktiarafi/ticketing-common"
@@ -21,7 +21,7 @@ func NewOrderConsumer(ticketRepo repository.TicketRepository) *OrderConsumer {
 }
 
 func (c *OrderConsumer) TicketCreated(msg *message.Message) error {
-	fmt.Println("received event from topic ", common.TicketCreated)
+	log.Println("received event from topic:", common.TicketCreated)
 	var ticketCreatedData types.TicketCreatedEvent
 	if err := ticketCreatedData.Unmarshal(msg.Payload); err != nil {
 		msg.Nack()
@@ -45,7 +45,7 @@ func (c *OrderConsumer) TicketCreated(msg *message.Message) error {
 }
 
 func (c *OrderConsumer) TicketUpdated(msg *message.Message) error {
-	fmt.Println("received event from topic ", common.TIcketUpdated)
+	log.Println("received event from topic:", common.TIcketUpdated)
 	ticketUpdatedData := new(types.TicketUpdatedEvent)
 	if err := ticketUpdatedData.Unmarshal(msg.Payload); err != nil {
 		msg.Nack()
