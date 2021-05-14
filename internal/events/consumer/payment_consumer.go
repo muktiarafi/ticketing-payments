@@ -1,7 +1,10 @@
 package consumer
 
 import (
+	"log"
+
 	"github.com/ThreeDotsLabs/watermill/message"
+	common "github.com/muktiarafi/ticketing-common"
 	"github.com/muktiarafi/ticketing-common/types"
 	"github.com/muktiarafi/ticketing-payments/internal/entity"
 	"github.com/muktiarafi/ticketing-payments/internal/repository"
@@ -18,6 +21,7 @@ func NewPaymentConsumer(orderRepo repository.OrderRepository) *PaymentConsumer {
 }
 
 func (c *PaymentConsumer) OrderCreated(msg *message.Message) error {
+	log.Println("Received event from topic:", common.OrderCreated)
 	orderCreatedEventData := new(types.OrderCreatedEvent)
 	if err := orderCreatedEventData.Unmarshal(msg.Payload); err != nil {
 		msg.Nack()
@@ -43,6 +47,7 @@ func (c *PaymentConsumer) OrderCreated(msg *message.Message) error {
 }
 
 func (c *PaymentConsumer) OrderCancelled(msg *message.Message) error {
+	log.Println("Received event from topic:", common.OrderCancelled)
 	orderCancelledEventData := new(types.OrderCancelledEvent)
 	if err := orderCancelledEventData.Unmarshal(msg.Payload); err != nil {
 		msg.Nack()
