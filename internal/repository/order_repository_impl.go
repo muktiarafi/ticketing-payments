@@ -90,6 +90,8 @@ func (r *OrderRepositoryImpl) Update(order *entity.Order) (*entity.Order, error)
 	if err := r.SQL.QueryRowContext(
 		ctx,
 		stmt,
+		order.Status,
+		order.Version,
 		order.ID,
 		order.Version-1,
 	).Scan(
