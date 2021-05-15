@@ -5,18 +5,24 @@ import (
 
 	common "github.com/muktiarafi/ticketing-common"
 	"github.com/muktiarafi/ticketing-payments/internal/entity"
+	"github.com/muktiarafi/ticketing-payments/internal/events/producer"
 	"github.com/muktiarafi/ticketing-payments/internal/repository"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/charge"
 )
 
 type PaymentServiceImpl struct {
+	producer.PaymentProducer
 	repository.OrderRepository
 	repository.PaymentRepository
 }
 
-func NewPaymentService(orderRepo repository.OrderRepository, paymentRepo repository.PaymentRepository) PaymentService {
+func NewPaymentService(
+	paymentProducer producer.PaymentProducer,
+	orderRepo repository.OrderRepository,
+	paymentRepo repository.PaymentRepository) PaymentService {
 	return &PaymentServiceImpl{
+		PaymentProducer:   paymentProducer,
 		OrderRepository:   orderRepo,
 		PaymentRepository: paymentRepo,
 	}
@@ -63,6 +69,10 @@ func (s *PaymentServiceImpl) Create(token string, userID, orderID int64) (*entit
 	}
 	newPayment, err := s.PaymentRepository.Insert(payment)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := s.PaymentProducer.Created(payment); err != nil {
 		return nil, err
 	}
 

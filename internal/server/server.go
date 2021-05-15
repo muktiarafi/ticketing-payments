@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -20,6 +21,7 @@ import (
 )
 
 func SetupServer() *echo.Echo {
+	fmt.Println("star setting up server")
 	e := echo.New()
 	p := custommiddleware.NewPrometheus("echo", nil)
 	p.Use(e)
@@ -31,23 +33,27 @@ func SetupServer() *echo.Echo {
 	e.HTTPErrorHandler = common.CustomErrorHandler
 	e.Use(middleware.Logger())
 
+	fmt.Println("start setting up db")
 	db, err := driver.ConnectSQL(config.PostgresDSN())
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	fmt.Println("start setting up stripe")
 	utils.InitStripe()
 	orderRepository := repository.NewOrderRepository(db)
 	paymentRepository := repository.NewPaymentRepository(db)
-	paymentService := service.NewPaymentService(orderRepository, paymentRepository)
 
+	fmt.Println("start setting up broker")
 	producerBrokers := []string{config.NewProducerBroker()}
 	commonPublisher, err := common.NewPublisher(producerBrokers, watermill.NewStdLogger(false, false))
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("start setting up broker")
 	paymentProducer := producer.NewPaymentProducer(commonPublisher)
-	paymentHandler := handler.NewPaymentHandler(paymentProducer, paymentService)
+	paymentService := service.NewPaymentService(paymentProducer, orderRepository, paymentRepository)
+	paymentHandler := handler.NewPaymentHandler(paymentService)
 	paymentHandler.Route(e)
 
 	subscriberConfig := &common.SubscriberConfig{
@@ -60,10 +66,13 @@ func SetupServer() *echo.Echo {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println("start setting up consumer")
 	paymentConsumer := consumer.NewPaymentConsumer(orderRepository)
 	commonConsumer := common.NewConsumer(subscriber)
 	commonConsumer.On(common.OrderCreated, paymentConsumer.OrderCreated)
 	commonConsumer.On(common.OrderCancelled, paymentConsumer.OrderCancelled)
 
+	fmt.Println("done setting up server")
 	return e
 }

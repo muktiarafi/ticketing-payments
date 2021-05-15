@@ -6,20 +6,17 @@ import (
 
 	"github.com/labstack/echo/v4"
 	common "github.com/muktiarafi/ticketing-common"
-	"github.com/muktiarafi/ticketing-payments/internal/events/producer"
 	"github.com/muktiarafi/ticketing-payments/internal/model"
 	"github.com/muktiarafi/ticketing-payments/internal/service"
 )
 
 type PaymentHandler struct {
-	producer.PaymentProducer
 	service.PaymentService
 }
 
-func NewPaymentHandler(paymentProducer producer.PaymentProducer, paymentSrv service.PaymentService) *PaymentHandler {
+func NewPaymentHandler(paymentSrv service.PaymentService) *PaymentHandler {
 	return &PaymentHandler{
-		PaymentProducer: paymentProducer,
-		PaymentService:  paymentSrv,
+		PaymentService: paymentSrv,
 	}
 }
 
@@ -53,10 +50,6 @@ func (h *PaymentHandler) New(c echo.Context) error {
 		paymentDTO.OrderID,
 	)
 	if err != nil {
-		return err
-	}
-
-	if err := h.PaymentProducer.Created(payment); err != nil {
 		return err
 	}
 

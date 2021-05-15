@@ -21,7 +21,9 @@ import (
 	common "github.com/muktiarafi/ticketing-common"
 	"github.com/muktiarafi/ticketing-payments/internal/driver"
 	"github.com/muktiarafi/ticketing-payments/internal/entity"
+	"github.com/muktiarafi/ticketing-payments/internal/events/producer"
 	"github.com/muktiarafi/ticketing-payments/internal/repository"
+	"github.com/muktiarafi/ticketing-payments/internal/utils"
 	"github.com/ory/dockertest/v3"
 	"github.com/stripe/stripe-go/v72"
 )
@@ -41,6 +43,8 @@ func TestMain(m *testing.M) {
 
 	router = echo.New()
 	router.Use(middleware.Logger())
+	fmt.Println("initting stripe")
+	utils.InitStripe()
 
 	val := validator.New()
 	trans := common.NewDefaultTranslator(val)
@@ -50,10 +54,10 @@ func TestMain(m *testing.M) {
 
 	orderRepository = repository.NewOrderRepository(db)
 	paymentRepository := repository.NewPaymentRepository(db)
-	paymentServiceMock := &paymentServiceMock{orderRepository, paymentRepository}
-
 	paymentProducer := &paymentProducerStub{}
-	paymentHandler := NewPaymentHandler(paymentProducer, paymentServiceMock)
+	paymentServiceMock := &paymentServiceMock{paymentProducer, orderRepository, paymentRepository}
+
+	paymentHandler := NewPaymentHandler(paymentServiceMock)
 	paymentHandler.Route(router)
 
 	code := m.Run()
@@ -126,6 +130,7 @@ func (p *paymentProducerStub) Created(payment *entity.Payment) error {
 }
 
 type paymentServiceMock struct {
+	producer.PaymentProducer
 	repository.OrderRepository
 	repository.PaymentRepository
 }
